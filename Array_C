@@ -158,6 +158,7 @@ int delete(Arr* arr) { //값 삭제
 		arr->data[i] = arr->data[i + 1]; //한칸씩 왼쪽으로 땡기기
 	}
 	arr->size--; //크기 줄이고
+	if (arr->size == 0) return -1; //수정: 크기0일땐 초기값 -1 반환
 	return arr->pos % arr->size; //맨 끝값 지웠을경우 맨 앞으로 이동
 }
 int traverse_front(Arr* arr) { //맨앞으로가기
