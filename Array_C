@@ -1,0 +1,271 @@
+//2020-1 자료구조 4주차 과제 - Array ADT(C)
+#define _CRT_SECURE_NO_WARNINGS
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#define MAXN 30 //예시에 30이라 되어있어서..
+#define CREATE_ARRAY(x) Arr my_##x //배열구조체 선언
+#define INSERT			'+'
+#define DELETE			'-'
+#define TRAVERSE_FRONT  '<'
+#define TRAVERSE_REAR   '>'
+#define GET_DATA		'@'
+#define REPLACE			'='
+#define EMPTY			'E'
+#define MOVE			'M'
+#define DATA_COUNT		'n'
+#define PRINT			'L'
+#define NEXT			'N'
+#define PREV			'P'
+#define	FIND			'F'
+#define COUNT			'C'
+#define SORT			'S'
+#define HELP			'H'
+typedef struct My_Array { 
+	char data[MAXN + 1]; //실제 배열 값
+	int pos; // 현재위치
+	int size; // 배열크기(같이 가지고 다니면 갯수 셀때마다 O(n)만큼 돌지 않아도 될 것 같아서)
+	//배열마다 현재위치와 크기를 같이 들고다니려고 구조체로 만들었다.
+}Arr;
+int my_atoi(char*); //stdlib에 있다고 떴지만 만들어보고 싶었다
+int isEmpty(Arr*);
+int insert(Arr*, char);
+int delete(Arr*);
+int traverse_front(Arr*);
+int traverse_rear(Arr*);
+char get_data(Arr*);
+void replace(Arr*, char);
+void empty(Arr*);
+int move(Arr*, int);
+int data_count(Arr*);
+void print(Arr*);
+int next(Arr*);
+int prev(Arr*);
+int find(Arr*, char); //추가기능1.
+int count(Arr*, char);//추가기능2.
+void sort(Arr*);//추가기능3.
+void help(void);
+
+
+int main() {
+	CREATE_ARRAY(arr) = {"",-1,0}; //배열 선언+초기화
+	//만약 여러개의 배열을 create()할때는 배열마다 여러번 따로 처리해야 할 것같아서 매크로 함수로 선언해보았다.
+	char data;
+	char str[100];
+	int npos;
+	help();//메뉴출력
+	printf(">> "); //명령어 치라는 뜻.
+	while (1) {
+		scanf("%s", str); //명령어 하나당 한문자열로 받아서 각각 처리하였음, 상세한 풀이는 아래의 함수부분 참고.
+		switch (str[0]) {
+		case INSERT:
+			my_arr.pos = insert(&my_arr, str[1]);
+			break;
+		case DELETE:
+			my_arr.pos = delete(&my_arr); 
+			break;
+		case TRAVERSE_FRONT:
+			my_arr.pos = traverse_front(&my_arr); 
+			break;
+		case TRAVERSE_REAR:
+			my_arr.pos = traverse_rear(&my_arr); 
+			break;
+		case GET_DATA:
+			printf("Return : %c\n", get_data(&my_arr)); 
+			break;
+		case REPLACE:
+			replace(&my_arr, str[1]);
+			break;
+		case EMPTY:
+			empty(&my_arr);
+			break;
+		case MOVE:
+			
+			if (str[1] == 'n') npos = data_count(&my_arr) - 1; //맨끝이동
+			else if (str[1] == 'N') npos = next(&my_arr); //오른쪽이동
+			else if (str[1] == 'P') npos = prev(&my_arr); //왼쪽이동
+			else {
+				//배열 갯수가 10을 넘었을때 (M12 같은거) 앞의 'M'자리에 '0'넣고 숫자로 바꿔서 처리하기
+				str[0] = '0'; //만약 M만 들어와서 str[1]자리에 널값이 있다면 str은 "0"이 되어서 M0과 동일하게 동작함.
+							//cf)M0이 들어오면 str은 "00"
+				npos = atoi(str);
+			}
+			my_arr.pos = move(&my_arr, npos); //이상한게 npos로 들어와도 move함수 내에서 에러출력하고 안이동함.
+			break;
+		case PRINT:
+			break;
+		case NEXT:
+			my_arr.pos = next(&my_arr);
+			break;
+		case PREV:
+			my_arr.pos = prev(&my_arr);
+			break;
+		case FIND:
+			my_arr.pos = find(&my_arr, str[1]);
+			break;
+		case COUNT:			
+			printf("There is(are) %d '%c'(s)\n",count(&my_arr, str[1]),str[1]);
+			break;
+		case SORT:
+			sort(&my_arr);
+			break;
+
+		case HELP:
+			help();
+			break;
+		default: //없는 명령어쳤을때
+			printf("Please enter the correct command.\n");
+			break;
+		}
+		if ( getchar() == '\n') //한줄 내릴때마다 현재 배열 상태 출력하고 명령어 입력 받을 준비
+		{
+			print(&my_arr); printf(">> ");
+		}
+	}
+	return 0;
+}
+int my_atoi(char str[]) { //문자열->숫자 변환 
+	int len = strlen(str);
+	int res = 0; 
+	for (int i = 0; i < len; i++) { //앞에부터 한칸씩 뒤로 가면서 
+		res *= 10; //자리수 바꿔주고
+		res += str[i] - '0'; //한자리씩 더해줌
+		if (str[i] < '0' || str[i]>'9') return -1; //혹시 숫자말고 다른게 들어오면 -1리턴
+	}
+	return res;
+}
+int isEmpty(Arr* arr) { //비었는지 확인
+	return !(arr->size);//크기가 0이면 비었음
+}
+int insert(Arr* arr, char new_data) { //한번에 한문자씩만 입력받을 수 있음-> char 가능
+	if (arr->size == MAXN) { //이미 끝까지 찼으면
+		printf("OverFlow Error: Array size is already the maximum. \n"); //오버플로우에러
+		return arr->pos; //위치 유지
+	}
+	for (int i = arr->size - 1; i > arr->pos; i--) { //끝부터 현재위치바로 오른쪽까지 돌면서
+		arr->data[i + 1] = arr->data[i]; //한칸씩 뒤로 땡김
+	}
+	arr->data[arr->pos + 1] = new_data; //현재위치 바로 오른쪽에 새 값 삽입
+	arr->size++; //크기 늘리고
+	return arr->pos + 1;//새값 넣은 위치 반환
+}
+int delete(Arr* arr) { //값 삭제
+	if (isEmpty(arr)) { //비어있으면
+		printf("UnderFlow Error: No value to delete.\n"); //언더플로우 에러 출력
+		return -1; //pos 초기값 -1 리턴
+	}
+	for (int i = arr->pos; i < arr->size - 1; i++) { //현재위치부터 끝까지 돌면서
+		arr->data[i] = arr->data[i + 1]; //한칸씩 왼쪽으로 땡기기
+	}
+	arr->size--; //크기 줄이고
+	return arr->pos % arr->size; //맨 끝값 지웠을경우 맨 앞으로 이동
+}
+int traverse_front(Arr* arr) { //맨앞으로가기
+	if (isEmpty(arr)) return -1; //비어있으면 초기값(-1)리턴
+	return 0; //아니면 0리턴
+}
+int traverse_rear(Arr* arr) { //맨뒤로가기
+	return arr->size - 1; //크기-1가 맨뒷 인덱스임
+}
+char get_data(Arr* arr) { //현재 위치의 값 출력
+	if (isEmpty(arr)) { //비어있으면
+		printf("Error: no data exsits //"); return '?'; //에러 출력
+	}
+	return arr->data[arr->pos]; //현재위치의 값 리턴
+}
+void replace(Arr* arr, char new_data) { //값 대체
+	if (isEmpty(arr)) { //비어있으면
+		printf("Error: no data exsits //"); return; //에러 출력하고 끝냄
+	}
+	arr->data[arr->pos] = new_data; //현재위치 새값으로 대체
+	return; 
+}
+void empty(Arr* arr) { //배열 비우기
+	arr->size = 0; //크기
+	arr->pos = -1; //랑 위치만 초기화해주면 값 들어있어도 덮어써짐
+}
+int move(Arr* arr, int new_position) { //새로운 위치로 이동
+	int temp = arr->data[arr->pos]; //현재 위치의 값
+	int now = arr->pos; //이동할 위치 초기값은 현재위치 
+	int d = (new_position > arr->pos ? 1 : -1); //앞으로 이동하냐 뒤로 이동하냐에 따라 값들이 뒤로 밀리는지 앞으로 밀리는지 다름
+	if (new_position < 0 || new_position >= arr->size) { //범위 내 위치가 아니면 
+		printf("Error : It cannot be moved.\n"); //에러 출력
+		return arr->pos;//기존 위치 반환
+	}
+	while (now != new_position) { //값 밀기
+		arr->data[now] = arr->data[now + d]; //한칸씩 땡기면서 값 덮어쓰기
+		now += d; //앞 또는 뒤로 한칸씩 이동
+	}
+	arr->data[new_position] = temp; //저장해 뒀던 기존위치의 값 새 위치에 넣기
+	return new_position; //새 위치 리턴
+}
+int data_count(Arr* arr) {//배열크기(데이터 갯수) 리턴
+	return arr->size;
+}
+void print(Arr* arr) { //배열 상태 출력 현재 위치는 괄호로 표시
+	if (isEmpty(arr)) { printf("empty array\n"); return; } //비었을 때
+	for (int i = 0; i < arr->size; i++)
+		if (arr->pos == i) printf("(%c)", arr->data[i]); //현재 위치오면 '(data)'
+		else printf(" %c ", arr->data[i]);// 아니면 그냥 ' data '
+	printf("\n");
+}
+int next(Arr* arr) { //한 칸 오른쪽으로 이동
+	if (arr->pos + 1 == arr->size) { //이미 맨 오른쪽이면 오버플로우 에러 출력
+		printf("OverFlow Error: Move to where the value exists.\n");
+		return arr->pos; //그리고 이동 안함(현재위치 그대로 반환)
+	}
+	return arr->pos + 1; //오른쪽위치 이동
+}
+int prev(Arr* arr) { //한 칸 왼쪽으로 이동
+	if (arr->pos <= 0) { //이미 맨 왼쪽이면 언더플로우 에러 출력
+		printf("UnderFlow Error: Move to where the value exists.\n");
+		return arr->pos; //그리고 이동 안함(현재위치 그대로 반환)
+	}
+	return arr->pos - 1; //왼쪽위치 반환
+}
+int find(Arr* arr, char target_data) { //추가기능1. 현재위치부터 오른쪽으로 돌면서 가장 먼저 찾은 값의 위치로 이동. 없으면 없다고 출력
+	for (int i = 1; i <= arr->size; i++) { //한바퀴 돌면서
+		if (target_data == arr->data[(i + arr->pos) % arr->size]) return (i + arr->pos) % arr->size; //찾으면 그 위치 반환
+	}
+	printf("No Exsits\n"); //없으면
+	return arr->pos; //이동 안함(현재위치 그대로 반환)
+}
+int count(Arr* arr, char target_data) { //추가기능2. 특정 값의 갯수만 세서 출력 
+	int res = 0;
+	for (int i = 0; i < arr->size; i++) {//한바퀴 돌면서
+		if (target_data == arr->data[i]) { //찾으면
+			res++; //갯수누적
+		}
+	}
+	return res;
+	// + 값들의 위치까지 알고 싶다면 count(data)번만큼 fint(data)를 반복하면 이동하면서 볼 수 있다. 
+}
+void sort(Arr* arr) { //추가기능3. 아스키코드 값 순서대로(대문자->소문자->알파벳순서대로) 값 정렬
+	qsort(arr->data, arr->size, sizeof(char), strcmp);
+}
+void help(void) { //가능한 명령어들 메뉴 보여주기
+	printf("============= H E L P =============\n\n");
+	printf("INSERT			: +(data)\n");
+	printf("DELETE			: -\n");
+	printf("TRAVERSE_FRONT\t\t: <\n");
+	printf("TRAVERSE_REAR\t\t: >\n");
+	printf("GET_DATA		: @\n");
+	printf("REPLACE			: =(data)\n");
+	printf("EMPTY			: E\n");
+	printf("MOVE 			: M(position)\n");
+	printf("MOVE FRONT		: M\n");
+	printf("MOVE END		: Mn\n");
+	printf("MOVE PREV		: MP\n");
+	printf("MOVE NEXT		: MN\n");
+	printf("PRINT			: L\n");
+	printf("PREV			: P\n");
+	printf("NEXT			: N\n");
+	printf("FIND			: F(data)\n");
+	printf("COUNT			: C(data)\n");
+	printf("SORT			: S\n");
+	printf("HELP			: H\n\n");
+	printf("** Spacing between commands\n");//명령어 하나하나마다 %s로 받기때문에 띄어쓰기 없으면 무시함..
+	printf("** Only one character for one data\n");//한글자씩만 들어감
+	printf("===================================\n");
+	return;
+}
